@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Tarefas Avançada</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 min-h-screen py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl">
+        <div class="p-8">
+            <div class="uppercase tracking-wide text-sm text-indigo-500 font-semibold mb-1">Gerenciador de Tarefas</div>
+            <h1 class="block mt-1 text-lg leading-tight font-medium text-black">Minha Lista de Tarefas</h1>
+            <form id="taskForm" class="mt-6">
+                <input type="hidden" id="taskId">
+                <div class="mb-4">
+                    <label for="date" class="block text-sm font-medium text-gray-700">Data</label>
+                    <input type="date" id="date" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                </div>
+                <div class="mb-4">
+                    <label for="type" class="block text-sm font-medium text-gray-700">Tipo de Tarefa</label>
+                    <input type="text" id="type" placeholder="Ex: Trabalho, Pessoal" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                </div>
+                <div class="mb-4">
+                    <label for="description" class="block text-sm font-medium text-gray-700">Descrição da Tarefa</label>
+                    <input type="text" id="description" placeholder="Descreva sua tarefa" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                </div>
+                <div class="flex items-center justify-between mt-6">
+                    <button type="submit" id="submitButton" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Adicionar Tarefa
+                    </button>
+                    <button type="button" id="saveButton" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-indigo-600 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Salvar Todas
+                    </button>
+                </div>
+            </form>
+            <ul id="taskList" class="mt-6 space-y-3"></ul>
+        </div>
+    </div>
+
+    <script>
+        const taskForm = document.getElementById('taskForm');
+        const taskList = document.getElementById('taskList');
+        const saveButton = document.getElementById('saveButton');
+        const submitButton = document.getElementById('submitButton');
+        let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+
+        function renderTasks() {
+            taskList.innerHTML = '';
+            tasks.forEach((task, index) => addTaskToList(task, index));
+        }
+
+        function addTaskToList(task, index) {
+            const taskItem = document.createElement('li');
+            taskItem.className = 'bg-gray-50 p-4 rounded-md shadow';
+            taskItem.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <div>
+                        <span class="text-sm font-medium text-gray-600">${task.date}</span>
+                        <span class="ml-2 text-sm font-medium text-indigo-600">${task.type}</span>
+                    </div>
+                    <div>
+                        <button onclick="editTask(${index})" class="text-blue-500 hover:text-blue-700">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="deleteTask(${index})" class="ml-2 text-red-500 hover:text-red-700">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                <p class="mt-2 text-sm text-gray-500">${task.description}</p>
+            `;
+            taskList.appendChild(taskItem);
+        }
+
+        function editTask(index) {
+            const task = tasks[index];
+            document.getElementById('taskId').value = index;
+            document.getElementById('date').value = formatDateForInput(task.date);
+            document.getElementById('type').value = task.type;
+            document.getElementById('description').value = task.description;
+            submitButton.textContent = 'Atualizar Tarefa';
+        }
+
+        function deleteTask(index) {
+            if (confirm('Tem certeza que deseja excluir esta tarefa?')) {
+                tasks.splice(index, 1);
+                saveTasks();
+                renderTasks();
+            }
+        }
+
+        function formatDateForInput(dateString) {
+            const [day, month, year] = dateString.split('/');
+            return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        }
+
+        function saveTasks() {
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+        }
+
+        taskForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const date = new Date(document.getElementById('date').value);
+            const formattedDate = date.toLocaleDateString('pt-BR');
+            const type = document.getElementById('type').value;
+            const description = document.getElementById('description').value;
+            const taskId = document.getElementById('taskId').value;
+
+            if (taskId !== '') {
+                // Editando tarefa existente
+                tasks[taskId] = { date: formattedDate, type, description };
+                submitButton.textContent = 'Adicionar Tarefa';
+            } else {
+                // Adicionando nova tarefa
+                tasks.push({ date: formattedDate, type, description });
+            }
+
+            saveTasks();
+            renderTasks();
+            taskForm.reset();
+            document.getElementById('taskId').value = '';
+        });
+
+        saveButton.addEventListener('click', function() {
+            saveTasks();
+            alert('Tarefas salvas com sucesso!');
+        });
+
+        // Inicialização
+        renderTasks();
+    </script>
+</body>
+</html>
